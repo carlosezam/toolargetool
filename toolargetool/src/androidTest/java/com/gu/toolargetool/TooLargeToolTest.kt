@@ -40,6 +40,26 @@ class TooLargeToolTest {
     }
 
     @Test
+    fun sizeTreeFromBundleWorksForBundleContaining10KbByteArrayDepth() {
+        val bundle = Bundle()
+        bundle.putByteArray("bytes", ByteArray(10000))
+
+        val nestedBundle = Bundle()
+        nestedBundle.putByteArray("nested bytes 1", ByteArray(10000))
+        nestedBundle.putByteArray("nested bytes 2", ByteArray(10000))
+
+        bundle.putBundle("nestedBundle", nestedBundle)
+
+        val sizeTree = sizeTreeFromBundle(bundle, -1)
+
+        val str = TooLargeTool.sizeTreeStringfy( sizeTree )
+
+        assertRoughly("totalSize is roughly 10KB", 10000, sizeTree.totalSize, delta = 0.01)
+        assertEquals("sizeTree has 1 item", 1, sizeTree.subTrees.size)
+        assertRoughly("item is roughly 10KB", 10000, sizeTree.subTrees[0].totalSize, delta = 0.01)
+    }
+
+    @Test
     fun sizeTreeFromBundleWorksForBundleContaining10x10KbByteArrays() {
         val bundle = Bundle()
         repeat(10) {

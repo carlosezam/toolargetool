@@ -19,13 +19,13 @@ interface Formatter {
  *
  * @author [@sfriedenberg](https://github.com/friedenberg)
  */
-class DefaultFormatter: Formatter {
+class DefaultFormatter(val depth: Int = -1): Formatter {
     override fun format(activity: Activity, bundle: Bundle): String {
-        return activity.javaClass.simpleName + ".onSaveInstanceState wrote: " + TooLargeTool.bundleBreakdown(bundle)
+        return activity.javaClass.simpleName + ".onSaveInstanceState wrote: " + TooLargeTool.bundleBreakdown(bundle, depth)
     }
 
     override fun format(fragmentManager: FragmentManager, fragment: Fragment, bundle: Bundle): String {
-        var message = fragment.javaClass.simpleName + ".onSaveInstanceState wrote: " + TooLargeTool.bundleBreakdown(bundle)
+        var message = fragment.javaClass.simpleName + ".onSaveInstanceState wrote: " + TooLargeTool.bundleBreakdown(bundle, depth)
         val fragmentArguments = fragment.arguments
         if (fragmentArguments != null) {
             message += "\n* fragment arguments = " + TooLargeTool.bundleBreakdown(fragmentArguments)

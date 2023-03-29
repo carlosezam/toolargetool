@@ -56,21 +56,44 @@ object TooLargeTool {
      * @return a nicely formatted string (multi-line)
      */
     @JvmStatic
-    fun bundleBreakdown(bundle: Bundle): String {
-        val (key, totalSize, subTrees) = sizeTreeFromBundle(bundle)
-        var result = String.format(
-                Locale.UK,
-                "%s contains %d keys and measures %,.1f KB when serialized as a Parcel",
-                key, subTrees.size, KB(totalSize)
-        )
-        for ((key1, totalSize1) in subTrees) {
-            result += String.format(
-                    Locale.UK,
-                    "\n* %s = %,.1f KB",
-                    key1, KB(totalSize1)
-            )
+    fun bundleBreakdown(bundle: Bundle, depth: Int = 0): String {
+         return sizeTreeStringfy( sizeTreeFromBundle(bundle, depth) )
+    }
+
+    fun sizeTreeStringfy( sizeTree: SizeTree, depth: Int = 0) : String {
+
+        val padding = "   ".repeat(depth)
+
+        var result = padding + bundleDescription( sizeTree ) +"\n"
+
+        for ( subtree in sizeTree.subTrees) {
+
+            if(subtree.subTrees.isEmpty())
+                result += padding + " " + keyDescription(subtree) + "\n"
+            else
+                result += padding + " " + keyDescription(subtree) + "\n " + sizeTreeStringfy( subtree, depth + 1 ) + "\n"
+
         }
+
         return result
+    }
+
+    fun keyDescription( sizeTree: SizeTree, prefix: String = "* " ) : String {
+        return String.format(
+            Locale.UK,
+            "%s%s = %,.1f KB",
+            prefix, sizeTree.key, KB(sizeTree.totalSize)
+        )
+    }
+    fun bundleDescription( sizeTree: SizeTree ) : String {
+
+        val (key, totalSize, subTrees) = sizeTree
+
+        return String.format(
+            Locale.UK,
+            "%s contains %d keys and measures %,.1f KB when serialized as a Parcel",
+            key, subTrees.size, KB(totalSize)
+        )
     }
 
     private fun KB(bytes: Int): Float {
@@ -86,8 +109,8 @@ object TooLargeTool {
      */
     @JvmOverloads
     @JvmStatic
-    fun startLogging(application: Application, priority: Int = Log.DEBUG, tag: String = "TooLargeTool") {
-        startLogging(application, DefaultFormatter(), LogcatLogger(priority, tag))
+    fun startLogging(application: Application, priority: Int = Log.DEBUG, tag: String = "TooLargeTool", depth: Int = -1) {
+        startLogging(application, DefaultFormatter(depth), LogcatLogger(priority, tag))
     }
 
     @JvmStatic
@@ -128,7 +151,12 @@ object TooLargeTool {
  * @param bundle to measure
  * @return a map from keys to value sizes in bytes
  */
-fun sizeTreeFromBundle(bundle: Bundle): SizeTree {
+fun sizeTreeFromBundle(bundle: Bundle, depth: Int = -1): SizeTree {
+
+    if( depth == 0 ){
+        return SizeTree("Bundle" + System.identityHashCode(bundle), sizeAsParcel(bundle), emptyList())
+    }
+
     val results = ArrayList<SizeTree>(bundle.size())
     // We measure the totalSize of each value by measuring the total totalSize of the bundle before and
     // after removing that value and calculating the difference. We make a copy of the original
@@ -140,10 +168,14 @@ fun sizeTreeFromBundle(bundle: Bundle): SizeTree {
         var bundleSize = sizeAsParcel(bundle)
         // Iterate over copy's keys because we're removing those of the original bundle
         for (key in copy.keySet()) {
+            val value = bundle.getBundle(key)
             bundle.remove(key)
             val newBundleSize = sizeAsParcel(bundle)
             val valueSize = bundleSize - newBundleSize
-            results.add(SizeTree(key, valueSize, emptyList()))
+
+            val subTree : List<SizeTree> = if( value != null ) sizeTreeFromBundle(value, depth - 1).subTrees else emptyList()
+
+            results.add(SizeTree(key, valueSize, subTree))
             bundleSize = newBundleSize
         }
     } finally {

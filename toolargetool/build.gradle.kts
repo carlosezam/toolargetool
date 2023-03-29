@@ -51,7 +51,7 @@ afterEvaluate {
 
                 groupId = "com.gu.android"
                 artifactId = "toolargetool"
-                version = "0.3.0" + if (isSnapshot) "-SNAPSHOT" else ""
+                version = "0.3.0.1" + if (isSnapshot) "-SNAPSHOT" else ""
 
                 pom {
                     name.set("toolargetool")
@@ -99,7 +99,7 @@ afterEvaluate {
         }
     }
 
-    signing {
+    /*signing {
         if (project.hasProperty("useInMemoryPgpKeys")) {
             val signingKey: String? by project
             val signingKeyPassword: String? by project
@@ -109,5 +109,5 @@ afterEvaluate {
             useInMemoryPgpKeys(signingKey, signingKeyPassword)
         }
         sign(publishing.publications["release"])
-    }
+    }*/
 }
